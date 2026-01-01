@@ -3762,6 +3762,10 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                     const occurrence = nameOccurrenceMap[lineNumber];
                                     let finalName = name;
 
+                                    if (!occurrence) {
+                                        console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}"`);
+                                    }
+
                                     if (occurrence && occurrence.occurrenceNum > 1) {
                                         // 2번째 이상 등장
                                         finalName = `${name}(${occurrence.occurrenceNum})`;
@@ -3834,6 +3838,10 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                     const occurrence = nameOccurrenceMap[lineNumber];
                                     let finalName = name;
 
+                                    if (!occurrence) {
+                                        console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}"`);
+                                    }
+
                                     if (occurrence && occurrence.occurrenceNum > 1) {
                                         // 2번째 이상 등장
                                         finalName = `${name}(${occurrence.occurrenceNum})`;
@@ -3902,6 +3910,10 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                             const occurrence = nameOccurrenceMap[lineNumber];
                                             let finalName = name;
 
+                                            if (!occurrence) {
+                                                console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}", chain=non-EVM`);
+                                            }
+
                                             if (occurrence && occurrence.occurrenceNum > 1) {
                                                 // 2번째 이상 등장
                                                 finalName = `${name}(${occurrence.occurrenceNum})`;
@@ -3946,12 +3958,33 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                     let updatedCount = 0;
                     let duplicateCount = 0;
 
+                    // 중복 키 감지를 위한 임시 맵
+                    const tempKeys = { EVM: {}, SOL: {} };
+
                     batchResults.forEach((result, index) => {
                         if (result.success) {
                             if (result.chain === 'EVM') {
+                                // 중복 키 감지
+                                if (wallets.EVM[result.name]) {
+                                    console.error(`❌ 덮어쓰기 발생! 키: "${result.name}", 기존 주소: ${wallets.EVM[result.name].address}, 새 주소: ${result.address}`);
+                                }
+                                if (tempKeys.EVM[result.name]) {
+                                    console.error(`❌ 같은 배치 내 중복! 키: "${result.name}"`);
+                                }
+                                tempKeys.EVM[result.name] = true;
+
                                 wallets.EVM[result.name] = { address: result.address, region: result.region };
                                 addedEVM++;
                             } else if (result.chain === 'SOL') {
+                                // 중복 키 감지
+                                if (wallets.SOL[result.name]) {
+                                    console.error(`❌ 덮어쓰기 발생! 키: "${result.name}", 기존 주소: ${wallets.SOL[result.name].address}, 새 주소: ${result.address}`);
+                                }
+                                if (tempKeys.SOL[result.name]) {
+                                    console.error(`❌ 같은 배치 내 중복! 키: "${result.name}"`);
+                                }
+                                tempKeys.SOL[result.name] = true;
+
                                 wallets.SOL[result.name] = { address: result.address, region: result.region };
                                 addedSOL++;
                             }
