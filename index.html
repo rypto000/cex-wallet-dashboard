@@ -3764,14 +3764,26 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
 
                                     if (!occurrence) {
                                         console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}"`);
+                                    } else if (name === "OKX_Hot" || name === "Kraken_Hot") {
+                                        console.log(`🔍 [Line ${lineNumber+1}] EVM "${name}" → occurrenceNum=${occurrence.occurrenceNum}, chain=${occurrence.chain}`);
                                     }
 
                                     if (occurrence && occurrence.occurrenceNum > 1) {
                                         // 2번째 이상 등장
                                         finalName = `${name}(${occurrence.occurrenceNum})`;
+                                        if (name === "OKX_Hot" || name === "Kraken_Hot") {
+                                            console.log(`   → finalName = "${finalName}"`);
+                                        }
                                     } else if (wallets.EVM[name]) {
                                         // 첫 번째 등장인데 DB에 이미 있음
                                         finalName = `${name}(1)`;
+                                        if (name === "OKX_Hot" || name === "Kraken_Hot") {
+                                            console.log(`   → DB 충돌, finalName = "${finalName}"`);
+                                        }
+                                    } else {
+                                        if (name === "OKX_Hot" || name === "Kraken_Hot") {
+                                            console.log(`   → 첫 번째 등장, finalName = "${finalName}"`);
+                                        }
                                     }
 
                                     // DB에 이미 있는지 다시 체크
