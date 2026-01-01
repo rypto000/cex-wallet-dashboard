@@ -3647,6 +3647,41 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                     console.log('🗑️ 기존 EVM 및 SOL 지갑 전체 삭제');
                 }
 
+                // 1단계: CSV 전체 스캔 - 각 이름의 등장 순서 미리 계산
+                console.log('📋 1단계: CSV 전체 스캔 중...');
+                const nameOccurrenceMap = {};  // { "라인번호": { name: "OKX_Hot", chain: "EVM", occurrenceNum: 2 } }
+
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    const values = line.split(',').map(v => v.trim());
+                    if (values.length < 4) continue;
+
+                    const name = values[headers.indexOf('name')];
+                    const chainValue = values[headers.indexOf('chain')] ? values[headers.indexOf('chain')].toUpperCase().trim() : '';
+                    let chain = chainValue === 'NON-EVM' ? 'SOL' : chainValue;  // 일단 non-EVM은 SOL로 가정
+
+                    if (!name || !chain) continue;
+
+                    const key = `${chain}:${name}`;
+                    if (!nameCounterEVM[key]) {
+                        nameCounterEVM[key] = 0;
+                    }
+                    nameCounterEVM[key]++;
+
+                    nameOccurrenceMap[i] = {
+                        name: name,
+                        chain: chain,
+                        occurrenceNum: nameCounterEVM[key]
+                    };
+                }
+
+                console.log(`✅ 스캔 완료: ${Object.keys(nameOccurrenceMap).length}개 라인 분석`);
+
+                // 카운터 초기화 (실제 처리에서 다시 사용)
+                for (const key in nameCounterEVM) {
+                    nameCounterEVM[key] = 0;
+                }
+
                 for (let i = 1; i < lines.length; i += batchSize) {
                     const batchEnd = Math.min(i + batchSize, lines.length);
                     const batchLines = lines.slice(i, batchEnd);
@@ -3723,24 +3758,23 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                         };
                                     }
 
-                                    // 이름 순서대로 번호 붙이기
-                                    if (!nameCounterEVM[name]) {
-                                        nameCounterEVM[name] = 0;
-                                    }
-                                    nameCounterEVM[name]++;
-
+                                    // 미리 계산된 등장 순서 사용
+                                    const occurrence = nameOccurrenceMap[lineNumber];
                                     let finalName = name;
-                                    if (nameCounterEVM[name] > 1 || wallets.EVM[name]) {
-                                        // 2번째 이상 나오거나, DB에 이미 있으면 번호 붙임
-                                        let counter = nameCounterEVM[name];
-                                        finalName = `${name}(${counter})`;
 
-                                        // DB에도 있는지 체크해서 번호 조정
-                                        while (wallets.EVM[finalName]) {
-                                            counter++;
-                                            finalName = `${name}(${counter})`;
-                                        }
-                                        nameCounterEVM[name] = counter;
+                                    if (occurrence && occurrence.occurrenceNum > 1) {
+                                        // 2번째 이상 등장
+                                        finalName = `${name}(${occurrence.occurrenceNum})`;
+                                    } else if (wallets.EVM[name]) {
+                                        // 첫 번째 등장인데 DB에 이미 있음
+                                        finalName = `${name}(1)`;
+                                    }
+
+                                    // DB에 이미 있는지 다시 체크
+                                    let counter = occurrence ? occurrence.occurrenceNum : 1;
+                                    while (wallets.EVM[finalName]) {
+                                        counter++;
+                                        finalName = `${name}(${counter})`;
                                     }
 
                                     if (finalName !== name) {
@@ -3796,24 +3830,23 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                         };
                                     }
 
-                                    // 이름 순서대로 번호 붙이기
-                                    if (!nameCounterSOL[name]) {
-                                        nameCounterSOL[name] = 0;
-                                    }
-                                    nameCounterSOL[name]++;
-
+                                    // 미리 계산된 등장 순서 사용
+                                    const occurrence = nameOccurrenceMap[lineNumber];
                                     let finalName = name;
-                                    if (nameCounterSOL[name] > 1 || wallets.SOL[name]) {
-                                        // 2번째 이상 나오거나, DB에 이미 있으면 번호 붙임
-                                        let counter = nameCounterSOL[name];
-                                        finalName = `${name}(${counter})`;
 
-                                        // DB에도 있는지 체크해서 번호 조정
-                                        while (wallets.SOL[finalName]) {
-                                            counter++;
-                                            finalName = `${name}(${counter})`;
-                                        }
-                                        nameCounterSOL[name] = counter;
+                                    if (occurrence && occurrence.occurrenceNum > 1) {
+                                        // 2번째 이상 등장
+                                        finalName = `${name}(${occurrence.occurrenceNum})`;
+                                    } else if (wallets.SOL[name]) {
+                                        // 첫 번째 등장인데 DB에 이미 있음
+                                        finalName = `${name}(1)`;
+                                    }
+
+                                    // DB에 이미 있는지 다시 체크
+                                    let counter = occurrence ? occurrence.occurrenceNum : 1;
+                                    while (wallets.SOL[finalName]) {
+                                        counter++;
+                                        finalName = `${name}(${counter})`;
                                     }
 
                                     if (finalName !== name) {
@@ -3865,24 +3898,23 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                                 };
                                             }
 
-                                            // 이름 순서대로 번호 붙이기
-                                            if (!nameCounterSOL[name]) {
-                                                nameCounterSOL[name] = 0;
-                                            }
-                                            nameCounterSOL[name]++;
-
+                                            // 미리 계산된 등장 순서 사용
+                                            const occurrence = nameOccurrenceMap[lineNumber];
                                             let finalName = name;
-                                            if (nameCounterSOL[name] > 1 || wallets.SOL[name]) {
-                                                // 2번째 이상 나오거나, DB에 이미 있으면 번호 붙임
-                                                let counter = nameCounterSOL[name];
-                                                finalName = `${name}(${counter})`;
 
-                                                // DB에도 있는지 체크해서 번호 조정
-                                                while (wallets.SOL[finalName]) {
-                                                    counter++;
-                                                    finalName = `${name}(${counter})`;
-                                                }
-                                                nameCounterSOL[name] = counter;
+                                            if (occurrence && occurrence.occurrenceNum > 1) {
+                                                // 2번째 이상 등장
+                                                finalName = `${name}(${occurrence.occurrenceNum})`;
+                                            } else if (wallets.SOL[name]) {
+                                                // 첫 번째 등장인데 DB에 이미 있음
+                                                finalName = `${name}(1)`;
+                                            }
+
+                                            // DB에 이미 있는지 다시 체크
+                                            let counter = occurrence ? occurrence.occurrenceNum : 1;
+                                            while (wallets.SOL[finalName]) {
+                                                counter++;
+                                                finalName = `${name}(${counter})`;
                                             }
 
                                             if (finalName !== name) {
