@@ -4026,7 +4026,33 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                     displayWallets();
                     checkForArrayAddresses();
 
-                    let statusMessage = `✅ ${addedCount}개 지갑이 추가되었습니다! (EVM ${addedEVM}개, SOL ${addedSOL}개)`;
+                    // 실제 저장된 개수 확인
+                    const actualEVM = Object.keys(wallets.EVM || {}).length;
+                    const actualSOL = Object.keys(wallets.SOL || {}).length;
+                    const actualTotal = actualEVM + actualSOL;
+
+                    console.log(`\n📊 ========================================`);
+                    console.log(`📊 저장 결과 비교`);
+                    console.log(`📊 ========================================`);
+                    console.log(`   추가 시도: EVM ${addedEVM}개, SOL ${addedSOL}개 = 총 ${addedCount}개`);
+                    console.log(`   실제 저장: EVM ${actualEVM}개, SOL ${actualSOL}개 = 총 ${actualTotal}개`);
+
+                    const lostEVM = addedEVM - actualEVM;
+                    const lostSOL = addedSOL - actualSOL;
+                    const lostTotal = addedCount - actualTotal;
+
+                    if (lostEVM !== 0 || lostSOL !== 0) {
+                        console.warn(`   ⚠️ 손실: EVM ${lostEVM}개, SOL ${lostSOL}개 = 총 ${lostTotal}개`);
+                        console.warn(`   💡 중복 이름 처리 중 덮어쓰기가 발생했을 수 있습니다!`);
+                    } else {
+                        console.log(`   ✅ 손실 없음: 모든 지갑이 정상 저장됨`);
+                    }
+                    console.log(`📊 ========================================\n`);
+
+                    let statusMessage = `✅ ${actualTotal}개 지갑이 저장되었습니다! (EVM ${actualEVM}개, SOL ${actualSOL}개)`;
+                    if (lostTotal > 0) {
+                        statusMessage += ` [⚠️ ${lostTotal}개 손실]`;
+                    }
                     if (skippedCount > 0) {
                         statusMessage += ` (${skippedCount}개 중복 스킵)`;
                     }
