@@ -3614,13 +3614,15 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                 }
 
                 const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
-                const expectedHeaders = ['name', 'address', 'region'];
+                const expectedHeaders = ['name', 'address', 'region', 'chain'];
 
                 if (!expectedHeaders.every(header => headers.includes(header))) {
-                    throw new Error('CSV 헤더가 올바르지 않습니다. name,address,region 형식이어야 합니다.');
+                    throw new Error('CSV 헤더가 올바르지 않습니다. name,address,region,chain 형식이어야 합니다.');
                 }
 
                 let addedCount = 0;
+                let addedEVM = 0;
+                let addedSOL = 0;
                 let errorCount = 0;
                 let skippedCount = 0;
                 const errors = [];
@@ -3636,7 +3638,8 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                 // 전체 교체 모드면 기존 데이터 삭제
                 if (replaceMode) {
                     wallets.EVM = {};
-                    console.log('🗑️ 기존 EVM 지갑 전체 삭제');
+                    wallets.SOL = {};
+                    console.log('🗑️ 기존 EVM 및 SOL 지갑 전체 삭제');
                 }
 
                 for (let i = 1; i < lines.length; i += batchSize) {
@@ -3654,15 +3657,17 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                         try {
                             const values = line.split(',').map(v => v.trim());
 
-                            if (values.length < 3) return { success: false, line: lineNumber, error: '데이터 부족 (name,address,region 필요)' };
+                            if (values.length < 4) return { success: false, line: lineNumber, error: '데이터 부족 (name,address,region,chain 필요)' };
 
                             const nameIndex = headers.indexOf('name');
                             const addressIndex = headers.indexOf('address');
                             const regionIndex = headers.indexOf('region');
+                            const chainIndex = headers.indexOf('chain');
 
                             const name = values[nameIndex];
                             let address = values[addressIndex];
                             const region = values[regionIndex] ? values[regionIndex].toUpperCase().trim() : 'FOREIGN';
+                            const chain = values[chainIndex] ? values[chainIndex].toUpperCase().trim() : '';
 
                             if (region !== 'FOREIGN' && region !== 'DOMESTIC') {
                                 return { success: false, line: lineNumber, error: 'region은 FOREIGN 또는 DOMESTIC이어야 합니다.' };
@@ -3672,54 +3677,125 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                 return { success: false, line: lineNumber, error: '거래소명이 비어있습니다.' };
                             }
 
-                            if (!address || !address.startsWith('0x')) {
-                                return { success: false, line: lineNumber, error: '올바르지 않은 주소 형식' };
+                            if (!address) {
+                                return { success: false, line: lineNumber, error: '주소가 비어있습니다.' };
                             }
 
-                            try {
-                                const web3Temp = new Web3();
-                                address = web3Temp.utils.toChecksumAddress(address);
-                            } catch (e) {
-                                return { success: false, line: lineNumber, error: '유효하지 않은 주소' };
+                            if (chain !== 'EVM' && chain !== 'SOL') {
+                                return { success: false, line: lineNumber, error: 'chain은 EVM 또는 SOL이어야 합니다.' };
                             }
 
-                            if (!wallets.EVM) {
-                                wallets.EVM = {};
-                            }
-
-                            // 추가만 모드일 때 중복 체크
-                            if (!replaceMode) {
-                                const existingWallet = findWalletByAddressEVM(address);
-                                if (existingWallet) {
-                                    // 중복 주소: 에러 대신 스킵 처리
-                                    return {
-                                        success: false,
-                                        skipped: true,
-                                        line: lineNumber,
-                                        address: address,
-                                        name: name,
-                                        existingName: existingWallet.name,
-                                        error: `중복 주소 스킵 (기존: ${existingWallet.name})`
-                                    };
+                            // EVM 처리
+                            if (chain === 'EVM') {
+                                if (!address.startsWith('0x')) {
+                                    return { success: false, line: lineNumber, error: 'EVM 주소는 0x로 시작해야 합니다.' };
                                 }
 
-                                let finalName = name;
-                                let counter = 1;
-
-                                while (wallets.EVM[finalName]) {
-                                    finalName = `${name}(${counter})`;
-                                    counter++;
+                                try {
+                                    const web3Temp = new Web3();
+                                    address = web3Temp.utils.toChecksumAddress(address);
+                                } catch (e) {
+                                    return { success: false, line: lineNumber, error: '유효하지 않은 EVM 주소' };
                                 }
 
-                                if (finalName !== name) {
-                                    console.log(`🔄 중복 이름 처리: ${name} → ${finalName}`);
+                                if (!wallets.EVM) {
+                                    wallets.EVM = {};
                                 }
 
-                                return { success: true, name: finalName, address, region, isDuplicate: finalName !== name };
+                                // 추가만 모드일 때 중복 체크
+                                if (!replaceMode) {
+                                    const existingWallet = findWalletByAddressEVM(address);
+                                    if (existingWallet) {
+                                        return {
+                                            success: false,
+                                            skipped: true,
+                                            line: lineNumber,
+                                            address: address,
+                                            name: name,
+                                            chain: 'EVM',
+                                            existingName: existingWallet.name,
+                                            error: `중복 주소 스킵 (기존: ${existingWallet.name})`
+                                        };
+                                    }
+
+                                    let finalName = name;
+                                    let counter = 1;
+
+                                    while (wallets.EVM[finalName]) {
+                                        finalName = `${name}(${counter})`;
+                                        counter++;
+                                    }
+
+                                    if (finalName !== name) {
+                                        console.log(`🔄 EVM 중복 이름 처리: ${name} → ${finalName}`);
+                                    }
+
+                                    return { success: true, chain: 'EVM', name: finalName, address, region, isDuplicate: finalName !== name };
+                                }
+
+                                return { success: true, chain: 'EVM', name, address, region };
                             }
 
-                            // 전체 교체 모드: 그냥 추가
-                            return { success: true, name, address, region };
+                            // SOL 처리
+                            if (chain === 'SOL') {
+                                if (address.length < 32 || address.length > 44) {
+                                    return { success: false, line: lineNumber, error: 'SOL 주소는 32-44자여야 합니다.' };
+                                }
+
+                                try {
+                                    new solanaWeb3.PublicKey(address);
+                                } catch (e) {
+                                    return { success: false, line: lineNumber, error: '유효하지 않은 SOL 주소' };
+                                }
+
+                                if (!wallets.SOL) {
+                                    wallets.SOL = {};
+                                }
+
+                                // 추가만 모드일 때 중복 체크
+                                if (!replaceMode) {
+                                    // SOL 중복 주소 체크
+                                    let existingWallet = null;
+                                    if (wallets.SOL) {
+                                        for (const [existingName, walletData] of Object.entries(wallets.SOL)) {
+                                            const existingAddr = typeof walletData === 'object' ? walletData.address : walletData;
+                                            if (existingAddr === address) {
+                                                existingWallet = { name: existingName };
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    if (existingWallet) {
+                                        return {
+                                            success: false,
+                                            skipped: true,
+                                            line: lineNumber,
+                                            address: address,
+                                            name: name,
+                                            chain: 'SOL',
+                                            existingName: existingWallet.name,
+                                            error: `중복 주소 스킵 (기존: ${existingWallet.name})`
+                                        };
+                                    }
+
+                                    let finalName = name;
+                                    let counter = 1;
+
+                                    while (wallets.SOL[finalName]) {
+                                        finalName = `${name}(${counter})`;
+                                        counter++;
+                                    }
+
+                                    if (finalName !== name) {
+                                        console.log(`🔄 SOL 중복 이름 처리: ${name} → ${finalName}`);
+                                    }
+
+                                    return { success: true, chain: 'SOL', name: finalName, address, region, isDuplicate: finalName !== name };
+                                }
+
+                                return { success: true, chain: 'SOL', name, address, region };
+                            }
 
                         } catch (error) {
                             return { success: false, line: lineNumber, error: error.message };
@@ -3733,7 +3809,13 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
 
                     batchResults.forEach((result, index) => {
                         if (result.success) {
-                            wallets.EVM[result.name] = { address: result.address, region: result.region };
+                            if (result.chain === 'EVM') {
+                                wallets.EVM[result.name] = { address: result.address, region: result.region };
+                                addedEVM++;
+                            } else if (result.chain === 'SOL') {
+                                wallets.SOL[result.name] = { address: result.address, region: result.region };
+                                addedSOL++;
+                            }
                             addedCount++;
 
                             if (result.isUpdate) {
@@ -3749,6 +3831,7 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                 line: result.line + 1,
                                 name: result.name,
                                 address: result.address,
+                                chain: result.chain,
                                 existingName: result.existingName
                             });
                             skippedCount++;
@@ -3773,7 +3856,7 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                 }
 
                 if (addedCount > 0 || skippedCount > 0) {
-                    console.log(`✅ CSV 처리 완료: ${addedCount}개 성공, ${errorCount}개 실패, ${skippedCount}개 중복 스킵`);
+                    console.log(`✅ CSV 처리 완료: ${addedCount}개 성공 (EVM ${addedEVM}개, SOL ${addedSOL}개), ${errorCount}개 실패, ${skippedCount}개 중복 스킵`);
 
                     // 중복 주소 상세 로그 출력
                     if (skippedDuplicates.length > 0) {
@@ -3785,9 +3868,10 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                         skippedDuplicates.forEach((dup, idx) => {
                             console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
                             console.log(`[${idx + 1}/${skippedDuplicates.length}] CSV 줄 번호: ${dup.line}`);
+                            console.log(`   🔗 체인: ${dup.chain}`);
                             console.log(`   ❌ CSV에서 추가하려는 이름: "${dup.name}"`);
                             console.log(`   ✅ DB에 이미 있는 이름: "${dup.existingName}"`);
-                            console.log(`   🔗 중복된 주소 (전체): ${dup.address}`);
+                            console.log(`   📍 중복된 주소 (전체): ${dup.address}`);
                             console.log(`   💡 해결방법: CSV에서 이 줄을 삭제하거나, 다른 주소로 변경하세요`);
                         });
 
@@ -3801,7 +3885,7 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                     displayWallets();
                     checkForArrayAddresses();
 
-                    let statusMessage = `✅ ${addedCount}개 EVM 지갑이 추가되었습니다!`;
+                    let statusMessage = `✅ ${addedCount}개 지갑이 추가되었습니다! (EVM ${addedEVM}개, SOL ${addedSOL}개)`;
                     if (skippedCount > 0) {
                         statusMessage += ` (${skippedCount}개 중복 스킵)`;
                     }
@@ -3824,6 +3908,7 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                         const displaySkipped = skippedDuplicates.slice(0, 5);
                         displaySkipped.forEach(dup => {
                             uploadStatusHTML += `<div style="background: #2a2a2a; padding: 8px; margin: 4px 0; border-left: 3px solid #FF9800; font-size: 11px;">`;
+                            uploadStatusHTML += `<div style="color: #9C27B0; font-size: 10px; margin-bottom: 4px;">[${dup.chain}]</div>`;
                             uploadStatusHTML += `<div style="color: #FF5252;">❌ CSV: "${dup.name}" (줄 ${dup.line})</div>`;
                             uploadStatusHTML += `<div style="color: #4CAF50;">✅ DB: "${dup.existingName}"</div>`;
                             uploadStatusHTML += `<div style="color: #2196F3; font-size: 10px; margin-top: 4px;">주소: ${dup.address.slice(0, 10)}...${dup.address.slice(-8)}</div>`;
