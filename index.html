@@ -3681,8 +3681,8 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                 return { success: false, line: lineNumber, error: '주소가 비어있습니다.' };
                             }
 
-                            if (chain !== 'EVM' && chain !== 'SOL') {
-                                return { success: false, line: lineNumber, error: 'chain은 EVM 또는 SOL이어야 합니다.' };
+                            if (chain !== 'EVM' && chain !== 'SOL' && chain !== 'NON-EVM') {
+                                return { success: false, line: lineNumber, error: 'chain은 EVM, SOL 또는 non-EVM이어야 합니다.' };
                             }
 
                             // EVM 처리
@@ -3795,6 +3795,72 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                 }
 
                                 return { success: true, chain: 'SOL', name, address, region };
+                            }
+
+                            // non-EVM 자동 감지
+                            if (chain === 'NON-EVM') {
+                                // 1. Solana 검증 시도
+                                if (address.length >= 32 && address.length <= 44) {
+                                    try {
+                                        new solanaWeb3.PublicKey(address);
+                                        console.log(`🔍 non-EVM 자동 감지: ${name} → SOL`);
+
+                                        if (!wallets.SOL) {
+                                            wallets.SOL = {};
+                                        }
+
+                                        // 추가만 모드일 때 중복 체크
+                                        if (!replaceMode) {
+                                            // SOL 중복 주소 체크
+                                            let existingWallet = null;
+                                            if (wallets.SOL) {
+                                                for (const [existingName, walletData] of Object.entries(wallets.SOL)) {
+                                                    const existingAddr = typeof walletData === 'object' ? walletData.address : walletData;
+                                                    if (existingAddr === address) {
+                                                        existingWallet = { name: existingName };
+                                                        break;
+                                                    }
+                                                }
+                                            }
+
+                                            if (existingWallet) {
+                                                return {
+                                                    success: false,
+                                                    skipped: true,
+                                                    line: lineNumber,
+                                                    address: address,
+                                                    name: name,
+                                                    chain: 'SOL',
+                                                    existingName: existingWallet.name,
+                                                    error: `중복 주소 스킵 (기존: ${existingWallet.name})`
+                                                };
+                                            }
+
+                                            let finalName = name;
+                                            let counter = 1;
+
+                                            while (wallets.SOL[finalName]) {
+                                                finalName = `${name}(${counter})`;
+                                                counter++;
+                                            }
+
+                                            if (finalName !== name) {
+                                                console.log(`🔄 SOL 중복 이름 처리: ${name} → ${finalName}`);
+                                            }
+
+                                            return { success: true, chain: 'SOL', name: finalName, address, region, isDuplicate: finalName !== name };
+                                        }
+
+                                        return { success: true, chain: 'SOL', name, address, region };
+                                    } catch (e) {
+                                        // Solana 아님
+                                    }
+                                }
+
+                                // 2. 다른 체인 감지 (향후 추가 가능)
+                                // TODO: TRX (starts with T), BTC (starts with 1, 3, bc1) 등
+
+                                return { success: false, line: lineNumber, error: 'non-EVM 주소 형식을 감지할 수 없습니다. (현재 SOL만 지원)' };
                             }
 
                         } catch (error) {
