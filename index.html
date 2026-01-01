@@ -3777,13 +3777,24 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
 
                     // 중복 주소 상세 로그 출력
                     if (skippedDuplicates.length > 0) {
-                        console.log(`\n⚠️  중복 주소로 스킵된 항목 (${skippedDuplicates.length}개):`);
+                        console.log(`\n⚠️  ========================================`);
+                        console.log(`⚠️  중복 주소 발견: ${skippedDuplicates.length}개`);
+                        console.log(`⚠️  ========================================`);
+                        console.log(`\n📋 CSV를 수정한 후 다시 업로드하세요:\n`);
+
                         skippedDuplicates.forEach((dup, idx) => {
-                            console.log(`[${idx + 1}] 줄 ${dup.line}: ${dup.name}`);
-                            console.log(`    주소: ${dup.address}`);
-                            console.log(`    기존 이름: ${dup.existingName}`);
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`[${idx + 1}/${skippedDuplicates.length}] CSV 줄 번호: ${dup.line}`);
+                            console.log(`   ❌ CSV에서 추가하려는 이름: "${dup.name}"`);
+                            console.log(`   ✅ DB에 이미 있는 이름: "${dup.existingName}"`);
+                            console.log(`   🔗 중복된 주소 (전체): ${dup.address}`);
+                            console.log(`   💡 해결방법: CSV에서 이 줄을 삭제하거나, 다른 주소로 변경하세요`);
                         });
-                        console.log('');
+
+                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+                        console.log(`📊 요약: ${skippedDuplicates.length}개 중복 주소 스킵됨`);
+                        console.log(`✅ 성공: ${addedCount}개 추가됨`);
+                        console.log(`❌ 실패: ${errorCount}개 오류\n`);
                     }
 
                     const saved = await saveWallets();
@@ -3808,13 +3819,18 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
 
                     // 중복 주소 표시 (최대 5개)
                     if (skippedDuplicates.length > 0) {
-                        uploadStatusHTML += '<span style="color: #2196F3;">ℹ️ 중복 주소 스킵:</span><br>';
+                        uploadStatusHTML += '<span style="color: #FF9800; font-weight: bold;">⚠️ 중복 주소 발견 (' + skippedDuplicates.length + '개)</span><br>';
+                        uploadStatusHTML += '<span style="color: #FFC107; font-size: 10px;">→ 콘솔(F12)에서 전체 목록 확인 가능</span><br><br>';
                         const displaySkipped = skippedDuplicates.slice(0, 5);
                         displaySkipped.forEach(dup => {
-                            uploadStatusHTML += `<span style="font-size: 11px;">줄 ${dup.line}: ${dup.name} (기존: ${dup.existingName})</span><br>`;
+                            uploadStatusHTML += `<div style="background: #2a2a2a; padding: 8px; margin: 4px 0; border-left: 3px solid #FF9800; font-size: 11px;">`;
+                            uploadStatusHTML += `<div style="color: #FF5252;">❌ CSV: "${dup.name}" (줄 ${dup.line})</div>`;
+                            uploadStatusHTML += `<div style="color: #4CAF50;">✅ DB: "${dup.existingName}"</div>`;
+                            uploadStatusHTML += `<div style="color: #2196F3; font-size: 10px; margin-top: 4px;">주소: ${dup.address.slice(0, 10)}...${dup.address.slice(-8)}</div>`;
+                            uploadStatusHTML += `</div>`;
                         });
                         if (skippedDuplicates.length > 5) {
-                            uploadStatusHTML += `<span style="font-size: 11px;">...외 ${skippedDuplicates.length - 5}개</span><br>`;
+                            uploadStatusHTML += `<span style="font-size: 11px; color: #999;">...외 ${skippedDuplicates.length - 5}개 (콘솔 확인)</span><br>`;
                         }
                         uploadStatusHTML += '<br>';
                     }
