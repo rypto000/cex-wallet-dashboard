@@ -3626,6 +3626,7 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                 let errorCount = 0;
                 let skippedCount = 0;
                 const errors = [];
+                const errorDetails = [];
                 const skippedDuplicates = [];
                 const batchSize = 50;
                 const totalLines = lines.length - 1;
@@ -3904,6 +3905,19 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                         } else {
                             // 실제 에러
                             errors.push(`줄 ${result.line + 1}: ${result.error}`);
+
+                            // 상세 에러 정보 수집
+                            const failedLine = lines[result.line];
+                            const failedValues = failedLine.split(',').map(v => v.trim());
+                            const failedName = failedValues[headers.indexOf('name')] || '(이름 없음)';
+                            const failedAddress = failedValues[headers.indexOf('address')] || '(주소 없음)';
+
+                            errorDetails.push({
+                                line: result.line + 1,
+                                name: failedName,
+                                address: failedAddress,
+                                error: result.error
+                            });
                             errorCount++;
                         }
                     });
@@ -3947,6 +3961,27 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                         console.log(`❌ 실패: ${errorCount}개 오류\n`);
                     }
 
+                    // 에러 상세 로그 출력
+                    if (errorDetails.length > 0) {
+                        console.log(`\n❌ ========================================`);
+                        console.log(`❌ 오류 발생: ${errorDetails.length}개`);
+                        console.log(`❌ ========================================`);
+                        console.log(`\n🔍 오류 상세 내역:\n`);
+
+                        errorDetails.forEach((err, idx) => {
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`[${idx + 1}/${errorDetails.length}] CSV 줄 번호: ${err.line}`);
+                            console.log(`   📝 이름: "${err.name}"`);
+                            console.log(`   📍 주소: ${err.address}`);
+                            console.log(`   ❌ 오류: ${err.error}`);
+                            console.log(`   💡 해결방법: CSV에서 이 줄을 확인하고 수정하세요`);
+                        });
+
+                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+                        console.log(`📊 요약: ${errorDetails.length}개 오류`);
+                        console.log(`✅ 성공: ${addedCount}개 추가됨\n`);
+                    }
+
                     const saved = await saveWallets();
                     displayWallets();
                     checkForArrayAddresses();
@@ -3987,13 +4022,19 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                     }
 
                     // 실제 오류 표시 (최대 5개)
-                    if (errors.length > 0) {
-                        uploadStatusHTML += '<span style="color: #ff9800;">⚠️ 오류:</span><br>';
-                        errors.slice(0, 5).forEach(e => {
-                            uploadStatusHTML += `<span style="font-size: 11px;">${e}</span><br>`;
+                    if (errorDetails.length > 0) {
+                        uploadStatusHTML += '<span style="color: #F44336; font-weight: bold;">❌ 오류 발생 (' + errorDetails.length + '개)</span><br>';
+                        uploadStatusHTML += '<span style="color: #FF5722; font-size: 10px;">→ 콘솔(F12)에서 전체 목록 확인 가능</span><br><br>';
+                        const displayErrors = errorDetails.slice(0, 5);
+                        displayErrors.forEach(err => {
+                            uploadStatusHTML += `<div style="background: #2a2a2a; padding: 8px; margin: 4px 0; border-left: 3px solid #F44336; font-size: 11px;">`;
+                            uploadStatusHTML += `<div style="color: #FF5252;">📝 이름: "${err.name}" (줄 ${err.line})</div>`;
+                            uploadStatusHTML += `<div style="color: #2196F3; font-size: 10px; margin-top: 4px;">주소: ${err.address.length > 20 ? err.address.slice(0, 10) + '...' + err.address.slice(-8) : err.address}</div>`;
+                            uploadStatusHTML += `<div style="color: #FF9800; margin-top: 4px;">❌ ${err.error}</div>`;
+                            uploadStatusHTML += `</div>`;
                         });
-                        if (errors.length > 5) {
-                            uploadStatusHTML += `<span style="font-size: 11px;">...외 ${errors.length - 5}개</span><br>`;
+                        if (errorDetails.length > 5) {
+                            uploadStatusHTML += `<span style="font-size: 11px; color: #999;">...외 ${errorDetails.length - 5}개 (콘솔 확인)</span><br>`;
                         }
                     }
 
