@@ -3742,7 +3742,7 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                     wallets.EVM = {};
                                 }
 
-                                // 추가만 모드일 때 중복 체크
+                                // 추가만 모드일 때 중복 주소 체크
                                 if (!replaceMode) {
                                     const existingWallet = findWalletByAddressEVM(address);
                                     if (existingWallet) {
@@ -3757,50 +3757,48 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                             error: `중복 주소 스킵 (기존: ${existingWallet.name})`
                                         };
                                     }
-
-                                    // 미리 계산된 등장 순서 사용
-                                    const occurrence = nameOccurrenceMap[lineNumber];
-                                    let finalName = name;
-
-                                    if (!occurrence) {
-                                        console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}"`);
-                                    } else if (name === "OKX_Hot" || name === "Kraken_Hot") {
-                                        console.log(`🔍 [Line ${lineNumber+1}] EVM "${name}" → occurrenceNum=${occurrence.occurrenceNum}, chain=${occurrence.chain}`);
-                                    }
-
-                                    if (occurrence && occurrence.occurrenceNum > 1) {
-                                        // 2번째 이상 등장
-                                        finalName = `${name}(${occurrence.occurrenceNum})`;
-                                        if (name === "OKX_Hot" || name === "Kraken_Hot") {
-                                            console.log(`   → finalName = "${finalName}"`);
-                                        }
-                                    } else if (wallets.EVM[name]) {
-                                        // 첫 번째 등장인데 DB에 이미 있음
-                                        finalName = `${name}(1)`;
-                                        if (name === "OKX_Hot" || name === "Kraken_Hot") {
-                                            console.log(`   → DB 충돌, finalName = "${finalName}"`);
-                                        }
-                                    } else {
-                                        if (name === "OKX_Hot" || name === "Kraken_Hot") {
-                                            console.log(`   → 첫 번째 등장, finalName = "${finalName}"`);
-                                        }
-                                    }
-
-                                    // DB에 이미 있는지 다시 체크
-                                    let counter = occurrence ? occurrence.occurrenceNum : 1;
-                                    while (wallets.EVM[finalName]) {
-                                        counter++;
-                                        finalName = `${name}(${counter})`;
-                                    }
-
-                                    if (finalName !== name) {
-                                        console.log(`🔄 EVM 중복 이름 처리: ${name} → ${finalName}`);
-                                    }
-
-                                    return { success: true, chain: 'EVM', name: finalName, address, region, isDuplicate: finalName !== name };
                                 }
 
-                                return { success: true, chain: 'EVM', name, address, region };
+                                // 중복 이름 처리 (모든 모드에서 실행)
+                                const occurrence = nameOccurrenceMap[lineNumber];
+                                let finalName = name;
+
+                                if (!occurrence) {
+                                    console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}"`);
+                                } else if (name === "OKX_Hot" || name === "Kraken_Hot") {
+                                    console.log(`🔍 [Line ${lineNumber+1}] EVM "${name}" → occurrenceNum=${occurrence.occurrenceNum}, chain=${occurrence.chain}`);
+                                }
+
+                                if (occurrence && occurrence.occurrenceNum > 1) {
+                                    // 2번째 이상 등장
+                                    finalName = `${name}(${occurrence.occurrenceNum})`;
+                                    if (name === "OKX_Hot" || name === "Kraken_Hot") {
+                                        console.log(`   → finalName = "${finalName}"`);
+                                    }
+                                } else if (wallets.EVM[name]) {
+                                    // 첫 번째 등장인데 DB에 이미 있음
+                                    finalName = `${name}(1)`;
+                                    if (name === "OKX_Hot" || name === "Kraken_Hot") {
+                                        console.log(`   → DB 충돌, finalName = "${finalName}"`);
+                                    }
+                                } else {
+                                    if (name === "OKX_Hot" || name === "Kraken_Hot") {
+                                        console.log(`   → 첫 번째 등장, finalName = "${finalName}"`);
+                                    }
+                                }
+
+                                // DB에 이미 있는지 다시 체크
+                                let counter = occurrence ? occurrence.occurrenceNum : 1;
+                                while (wallets.EVM[finalName]) {
+                                    counter++;
+                                    finalName = `${name}(${counter})`;
+                                }
+
+                                if (finalName !== name) {
+                                    console.log(`🔄 EVM 중복 이름 처리: ${name} → ${finalName}`);
+                                }
+
+                                return { success: true, chain: 'EVM', name: finalName, address, region, isDuplicate: finalName !== name };
                             }
 
                             // SOL 처리
@@ -3819,7 +3817,7 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                     wallets.SOL = {};
                                 }
 
-                                // 추가만 모드일 때 중복 체크
+                                // 추가만 모드일 때 중복 주소 체크
                                 if (!replaceMode) {
                                     // SOL 중복 주소 체크
                                     let existingWallet = null;
@@ -3845,38 +3843,36 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                             error: `중복 주소 스킵 (기존: ${existingWallet.name})`
                                         };
                                     }
-
-                                    // 미리 계산된 등장 순서 사용
-                                    const occurrence = nameOccurrenceMap[lineNumber];
-                                    let finalName = name;
-
-                                    if (!occurrence) {
-                                        console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}"`);
-                                    }
-
-                                    if (occurrence && occurrence.occurrenceNum > 1) {
-                                        // 2번째 이상 등장
-                                        finalName = `${name}(${occurrence.occurrenceNum})`;
-                                    } else if (wallets.SOL[name]) {
-                                        // 첫 번째 등장인데 DB에 이미 있음
-                                        finalName = `${name}(1)`;
-                                    }
-
-                                    // DB에 이미 있는지 다시 체크
-                                    let counter = occurrence ? occurrence.occurrenceNum : 1;
-                                    while (wallets.SOL[finalName]) {
-                                        counter++;
-                                        finalName = `${name}(${counter})`;
-                                    }
-
-                                    if (finalName !== name) {
-                                        console.log(`🔄 SOL 중복 이름 처리: ${name} → ${finalName}`);
-                                    }
-
-                                    return { success: true, chain: 'SOL', name: finalName, address, region, isDuplicate: finalName !== name };
                                 }
 
-                                return { success: true, chain: 'SOL', name, address, region };
+                                // 중복 이름 처리 (모든 모드에서 실행)
+                                const occurrence = nameOccurrenceMap[lineNumber];
+                                let finalName = name;
+
+                                if (!occurrence) {
+                                    console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}"`);
+                                }
+
+                                if (occurrence && occurrence.occurrenceNum > 1) {
+                                    // 2번째 이상 등장
+                                    finalName = `${name}(${occurrence.occurrenceNum})`;
+                                } else if (wallets.SOL[name]) {
+                                    // 첫 번째 등장인데 DB에 이미 있음
+                                    finalName = `${name}(1)`;
+                                }
+
+                                // DB에 이미 있는지 다시 체크
+                                let counter = occurrence ? occurrence.occurrenceNum : 1;
+                                while (wallets.SOL[finalName]) {
+                                    counter++;
+                                    finalName = `${name}(${counter})`;
+                                }
+
+                                if (finalName !== name) {
+                                    console.log(`🔄 SOL 중복 이름 처리: ${name} → ${finalName}`);
+                                }
+
+                                return { success: true, chain: 'SOL', name: finalName, address, region, isDuplicate: finalName !== name };
                             }
 
                             // non-EVM 자동 감지
@@ -3891,7 +3887,7 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                             wallets.SOL = {};
                                         }
 
-                                        // 추가만 모드일 때 중복 체크
+                                        // 추가만 모드일 때 중복 주소 체크
                                         if (!replaceMode) {
                                             // SOL 중복 주소 체크
                                             let existingWallet = null;
@@ -3917,38 +3913,36 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                                     error: `중복 주소 스킵 (기존: ${existingWallet.name})`
                                                 };
                                             }
-
-                                            // 미리 계산된 등장 순서 사용
-                                            const occurrence = nameOccurrenceMap[lineNumber];
-                                            let finalName = name;
-
-                                            if (!occurrence) {
-                                                console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}", chain=non-EVM`);
-                                            }
-
-                                            if (occurrence && occurrence.occurrenceNum > 1) {
-                                                // 2번째 이상 등장
-                                                finalName = `${name}(${occurrence.occurrenceNum})`;
-                                            } else if (wallets.SOL[name]) {
-                                                // 첫 번째 등장인데 DB에 이미 있음
-                                                finalName = `${name}(1)`;
-                                            }
-
-                                            // DB에 이미 있는지 다시 체크
-                                            let counter = occurrence ? occurrence.occurrenceNum : 1;
-                                            while (wallets.SOL[finalName]) {
-                                                counter++;
-                                                finalName = `${name}(${counter})`;
-                                            }
-
-                                            if (finalName !== name) {
-                                                console.log(`🔄 SOL 중복 이름 처리: ${name} → ${finalName}`);
-                                            }
-
-                                            return { success: true, chain: 'SOL', name: finalName, address, region, isDuplicate: finalName !== name };
                                         }
 
-                                        return { success: true, chain: 'SOL', name, address, region };
+                                        // 중복 이름 처리 (모든 모드에서 실행)
+                                        const occurrence = nameOccurrenceMap[lineNumber];
+                                        let finalName = name;
+
+                                        if (!occurrence) {
+                                            console.warn(`⚠️ [Line ${lineNumber+1}] occurrence 없음! name="${name}", chain=non-EVM`);
+                                        }
+
+                                        if (occurrence && occurrence.occurrenceNum > 1) {
+                                            // 2번째 이상 등장
+                                            finalName = `${name}(${occurrence.occurrenceNum})`;
+                                        } else if (wallets.SOL[name]) {
+                                            // 첫 번째 등장인데 DB에 이미 있음
+                                            finalName = `${name}(1)`;
+                                        }
+
+                                        // DB에 이미 있는지 다시 체크
+                                        let counter = occurrence ? occurrence.occurrenceNum : 1;
+                                        while (wallets.SOL[finalName]) {
+                                            counter++;
+                                            finalName = `${name}(${counter})`;
+                                        }
+
+                                        if (finalName !== name) {
+                                            console.log(`🔄 SOL 중복 이름 처리: ${name} → ${finalName}`);
+                                        }
+
+                                        return { success: true, chain: 'SOL', name: finalName, address, region, isDuplicate: finalName !== name };
                                     } catch (e) {
                                         // Solana 아님
                                     }
