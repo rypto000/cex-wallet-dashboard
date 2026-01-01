@@ -3631,6 +3631,10 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                 const batchSize = 50;
                 const totalLines = lines.length - 1;
 
+                // 이름 카운터: CSV 전체에서 순서대로 (1), (2), (3) 붙이기
+                const nameCounterEVM = {};
+                const nameCounterSOL = {};
+
                 console.log(`📊 CSV 처리 시작: ${totalLines}개 라인을 ${batchSize}개씩 배치 처리`);
 
                 const replaceMode = document.getElementById('replaceMode').checked;
@@ -3719,12 +3723,24 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                         };
                                     }
 
-                                    let finalName = name;
-                                    let counter = 1;
+                                    // 이름 순서대로 번호 붙이기
+                                    if (!nameCounterEVM[name]) {
+                                        nameCounterEVM[name] = 0;
+                                    }
+                                    nameCounterEVM[name]++;
 
-                                    while (wallets.EVM[finalName]) {
+                                    let finalName = name;
+                                    if (nameCounterEVM[name] > 1 || wallets.EVM[name]) {
+                                        // 2번째 이상 나오거나, DB에 이미 있으면 번호 붙임
+                                        let counter = nameCounterEVM[name];
                                         finalName = `${name}(${counter})`;
-                                        counter++;
+
+                                        // DB에도 있는지 체크해서 번호 조정
+                                        while (wallets.EVM[finalName]) {
+                                            counter++;
+                                            finalName = `${name}(${counter})`;
+                                        }
+                                        nameCounterEVM[name] = counter;
                                     }
 
                                     if (finalName !== name) {
@@ -3780,12 +3796,24 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                         };
                                     }
 
-                                    let finalName = name;
-                                    let counter = 1;
+                                    // 이름 순서대로 번호 붙이기
+                                    if (!nameCounterSOL[name]) {
+                                        nameCounterSOL[name] = 0;
+                                    }
+                                    nameCounterSOL[name]++;
 
-                                    while (wallets.SOL[finalName]) {
+                                    let finalName = name;
+                                    if (nameCounterSOL[name] > 1 || wallets.SOL[name]) {
+                                        // 2번째 이상 나오거나, DB에 이미 있으면 번호 붙임
+                                        let counter = nameCounterSOL[name];
                                         finalName = `${name}(${counter})`;
-                                        counter++;
+
+                                        // DB에도 있는지 체크해서 번호 조정
+                                        while (wallets.SOL[finalName]) {
+                                            counter++;
+                                            finalName = `${name}(${counter})`;
+                                        }
+                                        nameCounterSOL[name] = counter;
                                     }
 
                                     if (finalName !== name) {
@@ -3837,12 +3865,24 @@ Bithumb_Hot1,0x0000000000000000000000000000000000000004,DOMESTIC`;
                                                 };
                                             }
 
-                                            let finalName = name;
-                                            let counter = 1;
+                                            // 이름 순서대로 번호 붙이기
+                                            if (!nameCounterSOL[name]) {
+                                                nameCounterSOL[name] = 0;
+                                            }
+                                            nameCounterSOL[name]++;
 
-                                            while (wallets.SOL[finalName]) {
+                                            let finalName = name;
+                                            if (nameCounterSOL[name] > 1 || wallets.SOL[name]) {
+                                                // 2번째 이상 나오거나, DB에 이미 있으면 번호 붙임
+                                                let counter = nameCounterSOL[name];
                                                 finalName = `${name}(${counter})`;
-                                                counter++;
+
+                                                // DB에도 있는지 체크해서 번호 조정
+                                                while (wallets.SOL[finalName]) {
+                                                    counter++;
+                                                    finalName = `${name}(${counter})`;
+                                                }
+                                                nameCounterSOL[name] = counter;
                                             }
 
                                             if (finalName !== name) {
